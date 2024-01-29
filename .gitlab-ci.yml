@@ -1,0 +1,17 @@
+stages:
+  - linter
+  - test
+
+Lint code:
+  cache: { }
+  stage: linter
+  image: golangci/golangci-lint:v1.50-alpine
+  script:
+    - golangci-lint run --timeout=10m --build-tags=go_tarantool_ssl_disable
+
+Testing code:
+  cache: { }
+  stage: test
+  image: golang:1.19
+  script:
+    - go test  -v ./...
