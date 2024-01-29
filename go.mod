@@ -1,4 +1,4 @@
-module gitlab.com/bigclick/go-pkg/redis-pool
+module github.com/gismeteo/redis-pool
 
 go 1.19
 
