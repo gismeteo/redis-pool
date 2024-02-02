@@ -14,6 +14,15 @@ const (
 	bitOpXor
 )
 
+// Role describes a role of an instance by its mode.
+type Role uint32
+
+const (
+	UnknownRole Role = iota // A connection pool failed to discover mode of the instance.
+	MasterRole              // The instance is read-write mode.
+	ReplicaRole             // The instance is in read-only mode.
+)
+
 type ConnFactory interface {
 	getSlaveConn(key ...string) (*redis.Client, error)
 	getMasterConn(key ...string) (*redis.Client, error)
@@ -329,10 +338,24 @@ func (p *Pool) Keys(ctx context.Context, key string) *redis.StringSliceCmd {
 	return conn.Keys(ctx, key)
 }
 
-func (p *Pool) Do(ctx context.Context, args ...any) *redis.Cmd {
-	conn, err := p.connFactory.getSlaveConn()
-	if err != nil {
-		return newErrorCmd(err)
+func (p *Pool) Do(ctx context.Context, role Role, args ...any) *redis.Cmd {
+	var (
+		conn *redis.Client
+		err  error
+	)
+	switch role {
+	case MasterRole:
+		conn, err = p.connFactory.getMasterConn()
+		if err != nil {
+			return newErrorCmd(err)
+		}
+	case ReplicaRole:
+		conn, err = p.connFactory.getSlaveConn()
+		if err != nil {
+			return newErrorCmd(err)
+		}
+	case UnknownRole:
+		return newErrorCmd(errors.New("role unknown"))
 	}
 	return conn.Do(ctx, args...)
 }
